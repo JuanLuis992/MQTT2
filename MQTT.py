@@ -2,8 +2,8 @@ import paho.mqtt.client as mqtt
 from nicegui import ui
 import requests
 
-# Configuración MQTT
-broker = '192.168.7.104'
+# Configuración MQTT - usando HiveMQ público
+broker = 'broker.hivemq.com'
 port = 1883
 
 # Configuración Telegram
