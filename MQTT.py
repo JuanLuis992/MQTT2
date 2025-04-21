@@ -61,6 +61,7 @@ def on_message(client, userdata, msg):
 
 # Cliente MQTT
 client = mqtt.Client(transport="websockets")
+client.ws_set_options(path="/mqtt")
 client.on_connect = on_connect
 client.on_message = on_message
 client.connect(broker, port, 60)
