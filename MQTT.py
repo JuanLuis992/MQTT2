@@ -1,94 +1,96 @@
-import ssl
-import paho.mqtt.client as mqtt
 from nicegui import ui
 import requests
 
-# Configuración MQTT con HiveMQ Cloud
-broker = '67f82c543cad46daa62c5afb22a3fa80.s1.eu.hivemq.cloud'
-port = 8883
-
-# Telegram
+# --- Configuración Telegram (esto sí sigue en el backend) ---
 BOT_TOKEN = '7825032716:AAHBXTpOYpN6bYU3WausHv9T1S6Kg1EsmoA'
 CHAT_ID = '7536996477'
 alarma_enviada = False
 
-# Función para enviar mensajes a Telegram
-def enviar_telegram(mensaje):
-    url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage'
-    data = {'chat_id': CHAT_ID, 'text': mensaje}
-    response = requests.post(url, data=data)
-    print("✅ Telegram OK" if response.status_code == 200 else f"❌ Error Telegram {response.status_code}")
+# --- Agregar librería MQTT.js al frontend ---
+ui.add_head_html('''
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+''')
 
-# Callback al conectar
-def on_connect(client, userdata, flags, rc):
-    print(f'Conectado con código {rc}')
-    client.subscribe("boton1")
-    client.subscribe("boton2")
-    client.subscribe("boton3")
-    client.subscribe("led/pwm")
-    client.subscribe("sensor/temp")
-    client.subscribe("sensor/industrial")
+# --- Script para conectarse al broker MQTT WebSocket desde el navegador ---
+ui.run_javascript("""
+  const client = mqtt.connect('ws://server-production-952c.up.railway.app');
 
-# Callback al recibir mensaje
-def on_message(client, userdata, msg):
+  client.on('connect', () => {
+    console.log('✅ Conectado al broker MQTT por WebSocket');
+    client.subscribe('sensor/temp');
+    client.subscribe('sensor/industrial');
+    client.subscribe('boton1');
+    client.subscribe('boton2');
+    client.subscribe('boton3');
+    client.subscribe('led/pwm');
+  });
+
+  client.on('message', (topic, message) => {
+    const msg = message.toString();
+    console.log(`📩 ${topic}: ${msg}`);
+
+    if (topic === 'sensor/temp') {
+      document.getElementById('label_temp').innerText = `Temperatura: ${msg} °C`;
+    }
+    if (topic === 'sensor/industrial') {
+      document.getElementById('label_pz').innerText = `No. de piezas: ${msg}`;
+
+      // Lógica para detección de alarma y enviar al backend de Python
+      const piezas = parseInt(msg);
+      if (!isNaN(piezas) && piezas >= 20) {
+        fetch('/alarma');  // Llama a la ruta backend para enviar Telegram
+      }
+    }
+    if (topic === 'boton1') {
+      document.getElementById('estado_label').innerText = `Estado Botón 1: ${msg}`;
+    }
+    if (topic === 'boton2') {
+      document.getElementById('estado_label').innerText = `Estado Botón 2: ${msg}`;
+    }
+    if (topic === 'boton3') {
+      document.getElementById('estado_label').innerText = `Estado Botón 3: ${msg}`;
+    }
+  });
+
+  window.mqttClient = client;  // Exponer client globalmente
+""")
+
+# --- BACKEND: Ruta para enviar Telegram cuando el frontend detecta 20 piezas ---
+@ui.page('/alarma')
+def enviar_alarma():
     global alarma_enviada
-    valor = msg.payload.decode()
-    print(f"Mensaje recibido en {msg.topic}: {valor}")
+    if not alarma_enviada:
+        mensaje = "🚨 Alarma: Se han contado 20 piezas."
+        url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage'
+        data = {'chat_id': CHAT_ID, 'text': mensaje}
+        response = requests.post(url, data=data)
+        if response.status_code == 200:
+            print("✅ Mensaje enviado a Telegram.")
+            alarma_enviada = True
+        else:
+            print(f"❌ Error HTTP: {response.status_code}")
+    return 'OK'
 
-    if msg.topic == "boton1":
-        estado_label.set_text(f"Estado Botón 1: {valor}")
-    elif msg.topic == "boton2":
-        estado_label.set_text(f"Estado Botón 2: {valor}")
-    elif msg.topic == "boton3":
-        estado_label.set_text(f"Estado Botón 3: {valor}")
-    elif msg.topic == "sensor/temp":
-        label_temp.set_text(f"Temperatura: {valor} °C")
-    elif msg.topic == "sensor/industrial":
-        label_pz.set_text(f'No. de piezas: {valor}')
-        try:
-            piezas = int(valor)
-            if piezas >= 20 and not alarma_enviada:
-                enviar_telegram("🚨 Alarma: Se han contado 20 piezas.")
-                alarma_enviada = True
-            elif piezas < 20:
-                alarma_enviada = False
-        except ValueError:
-            print("Valor no válido")
+# --- Interfaz gráfica con NiceGUI ---
 
-# Cliente MQTT
-client = mqtt.Client()
-# Configurar TLS
-client.tls_set(certfile=None, keyfile=None, cert_reqs=ssl.CERT_NONE, tls_version=ssl.PROTOCOL_TLSv1_2)
-client.tls_insecure_set(True)  # Esto permite evitar verificaciones estrictas de SSL
-client.on_connect = on_connect
-client.on_message = on_message
-client.connect(broker, port, 60)
-client.loop_start()
+ui.label('Control de LED PWM: 0').props('id=label_pwm')
+ui.slider(min=0, max=255).on('change', lambda e: ui.run_javascript(
+    f"mqttClient.publish('led/pwm', '{e.value}'); document.getElementById('label_pwm').innerText = 'Control de LED PWM: {e.value}';"
+))
 
-# Función para publicar el valor del slider
-def publish_slider_value(value):
-    client.publish("led/pwm", str(value))
-    label_value.text = f'Valor del PWM: {value}'
+ui.label('Temperatura: 0 °C').props('id=label_temp')
+ui.label('No. de piezas: 0').props('id=label_pz')
 
-# Botones
-def boton1_presionado(): client.publish("boton1", "1"); estado_label.set_text('Botón 1 Presionado')
-def boton1_soltado(): client.publish("boton1", "0"); estado_label.set_text('Botón 1 Soltado')
-def boton2_presionado(): client.publish("boton2", "1"); estado_label.set_text('Botón 2 Presionado')
-def boton2_soltado(): client.publish("boton2", "0"); estado_label.set_text('Botón 2 Soltado')
-def boton3_presionado(): client.publish("boton3", "1"); estado_label.set_text('Botón 3 Presionado')
-def boton3_soltado(): client.publish("boton3", "0"); estado_label.set_text('Botón 3 Soltado')
+ui.button('Izquierda').on('mousedown', lambda: ui.run_javascript("mqttClient.publish('boton1', '1')")) \
+                      .on('mouseup', lambda: ui.run_javascript("mqttClient.publish('boton1', '0')"))
 
-# UI NiceGUI
-label_value = ui.label('Control de LED PWM: 0')
-slider = ui.slider(min=0, max=255, value=0, on_change=lambda e: publish_slider_value(e.value))
+ui.button('Derecha').on('mousedown', lambda: ui.run_javascript("mqttClient.publish('boton2', '1')")) \
+                    .on('mouseup', lambda: ui.run_javascript("mqttClient.publish('boton2', '0')"))
 
-label_temp = ui.label('Temperatura: 0 °C')
-label_pz = ui.label('No. de Piezas: 0')
+ui.button('Paro').on('mousedown', lambda: ui.run_javascript("mqttClient.publish('boton3', '1')")) \
+                 .on('mouseup', lambda: ui.run_javascript("mqttClient.publish('boton3', '0')"))
 
-boton1 = ui.button('Izquierda'); boton1.on('mousedown', boton1_presionado); boton1.on('mouseup', boton1_soltado)
-boton2 = ui.button('Derecha'); boton2.on('mousedown', boton2_presionado); boton2.on('mouseup', boton2_soltado)
-boton3 = ui.button('Paro'); boton3.on('mousedown', boton3_presionado); boton3.on('mouseup', boton3_soltado)
+ui.label('Estado de los botones').props('id=estado_label')
 
-estado_label = ui.label('Estado de los botones')
-
+# Ejecutar interfaz
 ui.run()
