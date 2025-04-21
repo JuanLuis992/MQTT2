@@ -1,9 +1,9 @@
+import ssl
 import paho.mqtt.client as mqtt
 from nicegui import ui
 import requests
-import ssl
 
-# Configuración MQTT con HiveMQ Cloud sin usuario y contraseña
+# Configuración MQTT con HiveMQ Cloud
 broker = '67f82c543cad46daa62c5afb22a3fa80.s1.eu.hivemq.cloud'
 port = 8883
 
@@ -57,7 +57,9 @@ def on_message(client, userdata, msg):
 
 # Cliente MQTT
 client = mqtt.Client()
-client.tls_set(cert_reqs=ssl.CERT_REQUIRED)  # Habilitar TLS
+# Configurar TLS
+client.tls_set(certfile=None, keyfile=None, cert_reqs=ssl.CERT_NONE, tls_version=ssl.PROTOCOL_TLSv1_2)
+client.tls_insecure_set(True)  # Esto permite evitar verificaciones estrictas de SSL
 client.on_connect = on_connect
 client.on_message = on_message
 client.connect(broker, port, 60)
