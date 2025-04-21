@@ -92,4 +92,5 @@ def enviar_alarma():
     return 'OK'
 
 # Ejecutar la interfaz
-ui.run()
+ui.run(host="0.0.0.0", port=80)
+
