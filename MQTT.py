@@ -5,7 +5,7 @@ import requests
 
 # Configuración MQTT - usando HiveMQ público
 broker = 'server-production-952c.up.railway.app'
-port = 8080
+port = 80
 
 # Configuración Telegram
 BOT_TOKEN = '7825032716:AAHBXTpOYpN6bYU3WausHv9T1S6Kg1EsmoA'
