@@ -3,8 +3,8 @@ from nicegui import ui
 import requests
 
 # Configuración MQTT - usando HiveMQ público
-broker = 'broker.hivemq.com'
-port = 1883
+broker = 'server-production-952c.up.railway.app'
+port = 9001
 
 # Configuración Telegram
 BOT_TOKEN = '7825032716:AAHBXTpOYpN6bYU3WausHv9T1S6Kg1EsmoA'
@@ -59,7 +59,7 @@ def on_message(client, userdata, msg):
             print("Valor recibido no es un número válido.")
 
 # Cliente MQTT
-client = mqtt.Client()
+client = mqtt.Client(transport="websockets")
 client.on_connect = on_connect
 client.on_message = on_message
 client.connect(broker, port, 60)
