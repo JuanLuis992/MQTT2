@@ -4,7 +4,7 @@ import requests
 
 
 # Configuración MQTT - usando HiveMQ público
-broker = "wss://server-production-952c.up.railway.app"
+broker = 'server-production-952c.up.railway.app'
 port = 8080
 
 # Configuración Telegram
