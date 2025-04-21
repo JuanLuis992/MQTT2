@@ -1,10 +1,11 @@
 import paho.mqtt.client as mqtt
 from nicegui import ui
 import requests
+import ssl
 
 # Configuración MQTT - usando HiveMQ público
 broker = 'server-production-952c.up.railway.app'
-port = 1883
+port = 8080
 
 # Configuración Telegram
 BOT_TOKEN = '7825032716:AAHBXTpOYpN6bYU3WausHv9T1S6Kg1EsmoA'
@@ -60,6 +61,8 @@ def on_message(client, userdata, msg):
 
 # Cliente MQTT
 client = mqtt.Client(transport="websockets")
+client.tls_set(cert_reqs=ssl.CERT_NONE)  # Para ignorar verificación SSL (opcional)
+client.tls_insecure_set(True)            # Permite conexión sin cert. válidos
 client.on_connect = on_connect
 client.on_message = on_message
 client.connect(broker, port, 60)
