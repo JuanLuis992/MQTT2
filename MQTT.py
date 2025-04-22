@@ -2,6 +2,8 @@ import ssl
 import paho.mqtt.client as mqtt
 from nicegui import ui
 import requests
+from collections import deque
+from datetime import datetime
 
 # Configuración MQTT con HiveMQ Cloud
 broker = "67f82c543cad46daa62c5afb22a3fa80.s1.eu.hivemq.cloud"
@@ -11,6 +13,10 @@ port = 8883
 BOT_TOKEN = "7825032716:AAHBXTpOYpN6bYU3WausHv9T1S6Kg1EsmoA"
 CHAT_ID = "7536996477"
 alarma_enviada = False
+
+# Variables para la gráfica
+temp_data = deque(maxlen=50)  # Últimos 50 datos
+time_data = deque(maxlen=50)
 
 # Función para enviar mensajes a Telegram
 def enviar_telegram(mensaje):
@@ -43,6 +49,17 @@ def on_message(client, userdata, msg):
         estado_label.set_text(f"Estado Botón 3: {valor}")
     elif msg.topic == "sensor/temp":
         label_temp.set_text(f"Temperatura: {valor} °C")
+        try:
+            temp = float(valor)
+            now = datetime.now().strftime('%H:%M:%S')
+            temp_data.append(temp)
+            time_data.append(now)
+            with line_plot:
+                line_plot.options['xAxis']['data'] = list(time_data)
+                line_plot.options['series'][0]['data'] = list(temp_data)
+                line_plot.update()
+        except ValueError:
+            print("Temperatura no válida")
     elif msg.topic == "sensor/industrial":
         label_pz.set_text(f'No. de piezas: {valor}')
         try:
@@ -57,10 +74,9 @@ def on_message(client, userdata, msg):
 
 # Cliente MQTT
 client = mqtt.Client()
-# Configurar TLS
-client.username_pw_set(username="Juan_Luis", password="Luis2023*")  # Agregar usuario y contraseña si es necesario
+client.username_pw_set(username="Juan_Luis", password="Luis2023*")
 client.tls_set(certfile=None, keyfile=None, cert_reqs=ssl.CERT_NONE, tls_version=ssl.PROTOCOL_TLSv1_2)
-client.tls_insecure_set(True)  # Esto permite evitar verificaciones estrictas de SSL
+client.tls_insecure_set(True)
 client.on_connect = on_connect
 client.on_message = on_message
 client.connect(broker, port, 60)
@@ -91,5 +107,14 @@ boton2 = ui.button('Derecha'); boton2.on('mousedown', boton2_presionado); boton2
 boton3 = ui.button('Paro'); boton3.on('mousedown', boton3_presionado); boton3.on('mouseup', boton3_soltado)
 
 estado_label = ui.label('Estado de los botones')
+
+# Gráfica de temperatura
+ui.label('Gráfica de Temperatura en Tiempo Real')
+with ui.echart({
+    'xAxis': {'type': 'category', 'data': []},
+    'yAxis': {'type': 'value'},
+    'series': [{'type': 'line', 'data': []}]
+}) as line_plot:
+    pass
 
 ui.run()
