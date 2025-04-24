@@ -10,8 +10,8 @@ broker = "67f82c543cad46daa62c5afb22a3fa80.s1.eu.hivemq.cloud"
 port = 8883
 
 # Telegram
-BOT_TOKEN = "7825032716:AAHBXTpOYpN6bYU3WausHv9T1S6Kg1EsmoA"
-CHAT_ID = "7536996477"
+BOT_TOKEN = "7707342331:AAFIxDJWQ-MgUv854TOt69F_t9mfxFA8lqc"
+CHAT_ID = "5767086904"
 alarma_enviada = False
 
 # Variables para la gráfica
