@@ -1,17 +1,13 @@
+import ssl
 import paho.mqtt.client as mqtt
 from nicegui import ui
 import requests
 from collections import deque
 from datetime import datetime
-import socket
-import threading
 
-# Configuración MQTT con Railway
-broker = "switchyard.proxy.rlwy.net"  # broker MQTT en Railway
-port = 57529  # El puerto proporcionado por Railway
-
-HOST = '0.0.0.0'
-PORT = 9999  # Cambiado para evitar conflicto con NiceGUI
+# Configuración MQTT con HiveMQ Cloud
+broker = "67f82c543cad46daa62c5afb22a3fa80.s1.eu.hivemq.cloud"
+port = 8883
 
 # Telegram
 BOT_TOKEN = "7825032716:AAHBXTpOYpN6bYU3WausHv9T1S6Kg1EsmoA"
@@ -19,7 +15,7 @@ CHAT_ID = "7536996477"
 alarma_enviada = False
 
 # Variables para la gráfica
-temp_data = deque(maxlen=50)
+temp_data = deque(maxlen=50)  # Últimos 50 datos
 time_data = deque(maxlen=50)
 
 # Función para enviar mensajes a Telegram
@@ -78,41 +74,11 @@ def on_message(client, userdata, msg):
 
 # Cliente MQTT
 client = mqtt.Client()
+client.username_pw_set(username="Juan_Luis", password="Luis2023*")
+client.tls_set(certfile=None, keyfile=None, cert_reqs=ssl.CERT_NONE, tls_version=ssl.PROTOCOL_TLSv1_2)
+client.tls_insecure_set(True)
 client.on_connect = on_connect
 client.on_message = on_message
-
-# -------- Servidor TCP para recibir datos del ESP32 --------
-# -------- Servidor TCP para recibir datos del ESP32 --------
-def tcp_handler():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind((HOST, PORT))
-        s.listen(1)
-        print(f"Servidor TCP escuchando en {HOST}:{PORT}")
-        conn, addr = s.accept()
-        with conn:
-            print(f"Conectado desde {addr}")
-            while True:
-                data = conn.recv(1024)
-                if not data:
-                    break
-                try:
-                    mensaje = data.decode().strip()
-                    print(f"TCP recibido: {mensaje}")
-                    if "=" in mensaje:
-                        topic, valor = mensaje.split("=")
-                        topic = topic.strip()
-                        valor = valor.strip()
-                        client.publish(topic, valor)
-                except Exception as e:
-                    print(f"Error al procesar mensaje TCP: {e}")
-
-
-# Lanzar el hilo TCP
-tcp_thread = threading.Thread(target=tcp_handler, daemon=True)
-tcp_thread.start()
-
-# Conectar al broker MQTT
 client.connect(broker, port, 60)
 client.loop_start()
 
