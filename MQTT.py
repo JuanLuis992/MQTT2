@@ -3,10 +3,15 @@ from nicegui import ui
 import requests
 from collections import deque
 from datetime import datetime
+import socket
+import threading
 
 # Configuración MQTT con Railway
-broker = "centerbeam.proxy.rlwy.net"  # Tu broker MQTT en Railway
+broker = "centerbeam.proxy.rlwy.net"  # broker MQTT en Railway
 port = 23178  # El puerto proporcionado por Railway
+
+HOST = '192.168.7.104'
+PORT = 8080
 
 # Telegram
 BOT_TOKEN = "7825032716:AAHBXTpOYpN6bYU3WausHv9T1S6Kg1EsmoA"
@@ -75,7 +80,37 @@ def on_message(client, userdata, msg):
 client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
-client.connect(broker, port, 60)  # Conectar al broker en Railway
+
+# -------- Servidor TCP para recibir datos del ESP32 --------
+def tcp_handler():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((HOST, PORT))
+        s.listen(1)
+        print(f"Servidor TCP escuchando en {HOST}:{PORT}")
+        conn, addr = s.accept()
+        with conn:
+            print(f"Conectado desde {addr}")
+            while True:
+                data = conn.recv(1024)
+                if not data:
+                    break
+                try:
+                    mensaje = data.decode().strip()
+                    print(f"TCP recibido: {mensaje}")
+                    if "=" in mensaje:
+                        topic, valor = mensaje.split("=")
+                        topic = topic.strip()
+                        valor = valor.strip()
+                        client.publish(topic, valor)
+                except Exception as e:
+                    print(f"Error al procesar mensaje TCP: {e}")
+
+# Lanzar el hilo TCP
+tcp_thread = threading.Thread(target=tcp_handler, daemon=True)
+tcp_thread.start()
+
+# Conectar al broker MQTT
+client.connect(broker, port, 60)
 client.loop_start()
 
 # Función para publicar el valor del slider
