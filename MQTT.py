@@ -148,4 +148,4 @@ with ui.echart({
 }) as line_plot:
     pass
 
-ui.run()
+ui.run(port=5000)
