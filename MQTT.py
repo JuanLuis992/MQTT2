@@ -1,13 +1,12 @@
-import ssl
 import paho.mqtt.client as mqtt
 from nicegui import ui
 import requests
 from collections import deque
 from datetime import datetime
 
-# Configuración MQTT con HiveMQ Cloud
-broker = "67f82c543cad46daa62c5afb22a3fa80.s1.eu.hivemq.cloud"
-port = 8883
+# Configuración MQTT con Railway
+broker = "centerbeam.proxy.rlwy.net"  # Tu broker MQTT en Railway
+port = 23178  # El puerto proporcionado por Railway
 
 # Telegram
 BOT_TOKEN = "7825032716:AAHBXTpOYpN6bYU3WausHv9T1S6Kg1EsmoA"
@@ -23,7 +22,7 @@ def enviar_telegram(mensaje):
     url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage'
     data = {'chat_id': CHAT_ID, 'text': mensaje}
     response = requests.post(url, data=data)
-    print("✅ Telegram OK" if response.status_code == 200 else f"❌ Error Telegram {response.status_code}")
+    print("Telegram OK" if response.status_code == 200 else f"Error Telegram {response.status_code}")
 
 # Callback al conectar
 def on_connect(client, userdata, flags, rc):
@@ -65,7 +64,7 @@ def on_message(client, userdata, msg):
         try:
             piezas = int(valor)
             if piezas >= 20 and not alarma_enviada:
-                enviar_telegram("🚨 Alarma: Se han contado 20 piezas.")
+                enviar_telegram("Alarma: Se han contado 20 piezas.")
                 alarma_enviada = True
             elif piezas < 20:
                 alarma_enviada = False
@@ -74,12 +73,9 @@ def on_message(client, userdata, msg):
 
 # Cliente MQTT
 client = mqtt.Client()
-client.username_pw_set(username="Juan_Luis", password="Luis2023*")
-client.tls_set(certfile=None, keyfile=None, cert_reqs=ssl.CERT_NONE, tls_version=ssl.PROTOCOL_TLSv1_2)
-client.tls_insecure_set(True)
 client.on_connect = on_connect
 client.on_message = on_message
-client.connect(broker, port, 60)
+client.connect(broker, port, 60)  # Conectar al broker en Railway
 client.loop_start()
 
 # Función para publicar el valor del slider
