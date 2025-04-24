@@ -11,7 +11,7 @@ broker = "switchyard.proxy.rlwy.net"  # broker MQTT en Railway
 port = 57529  # El puerto proporcionado por Railway
 
 HOST = '0.0.0.0'
-PORT = 5000
+PORT = 9090  # Cambiado para evitar conflicto con NiceGUI
 
 # Telegram
 BOT_TOKEN = "7825032716:AAHBXTpOYpN6bYU3WausHv9T1S6Kg1EsmoA"
@@ -19,7 +19,7 @@ CHAT_ID = "7536996477"
 alarma_enviada = False
 
 # Variables para la gráfica
-temp_data = deque(maxlen=50)  # Últimos 50 datos
+temp_data = deque(maxlen=50)
 time_data = deque(maxlen=50)
 
 # Función para enviar mensajes a Telegram
@@ -84,6 +84,7 @@ client.on_message = on_message
 # -------- Servidor TCP para recibir datos del ESP32 --------
 def tcp_handler():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((HOST, PORT))
         s.listen(1)
         print(f"Servidor TCP escuchando en {HOST}:{PORT}")
@@ -148,4 +149,4 @@ with ui.echart({
 }) as line_plot:
     pass
 
-ui.run(port=5000)
+ui.run()
