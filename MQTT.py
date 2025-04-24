@@ -7,8 +7,8 @@ import socket
 import threading
 
 # Configuración MQTT con Railway
-broker = "centerbeam.proxy.rlwy.net"  # broker MQTT en Railway
-port = 23178  # El puerto proporcionado por Railway
+broker = "switchyard.proxy.rlwy.net"  # broker MQTT en Railway
+port = 57529  # El puerto proporcionado por Railway
 
 HOST = '192.168.7.104'
 PORT = 8080
