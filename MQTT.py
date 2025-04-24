@@ -11,7 +11,7 @@ broker = "switchyard.proxy.rlwy.net"  # broker MQTT en Railway
 port = 57529  # El puerto proporcionado por Railway
 
 HOST = '0.0.0.0'
-PORT = 9090  # Cambiado para evitar conflicto con NiceGUI
+PORT = 9999  # Cambiado para evitar conflicto con NiceGUI
 
 # Telegram
 BOT_TOKEN = "7825032716:AAHBXTpOYpN6bYU3WausHv9T1S6Kg1EsmoA"
@@ -82,6 +82,7 @@ client.on_connect = on_connect
 client.on_message = on_message
 
 # -------- Servidor TCP para recibir datos del ESP32 --------
+# -------- Servidor TCP para recibir datos del ESP32 --------
 def tcp_handler():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -105,6 +106,7 @@ def tcp_handler():
                         client.publish(topic, valor)
                 except Exception as e:
                     print(f"Error al procesar mensaje TCP: {e}")
+
 
 # Lanzar el hilo TCP
 tcp_thread = threading.Thread(target=tcp_handler, daemon=True)
