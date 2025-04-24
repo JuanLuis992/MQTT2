@@ -10,8 +10,8 @@ import threading
 broker = "switchyard.proxy.rlwy.net"  # broker MQTT en Railway
 port = 57529  # El puerto proporcionado por Railway
 
-HOST = '192.168.7.104'
-PORT = 8080
+HOST = '0.0.0.0'
+PORT = 5000
 
 # Telegram
 BOT_TOKEN = "7825032716:AAHBXTpOYpN6bYU3WausHv9T1S6Kg1EsmoA"
